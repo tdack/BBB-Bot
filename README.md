@@ -27,10 +27,16 @@ Control messages are passed from client to server as JSON over a web sockets tra
     { event: 'drive',
         cmd: {
                 direction: 'fwd|rev|left|right|stop|speed',
-                speed: '0-100
+                speed: '0-100'
             }
     }
 ````
+
+`speed` is in percent and should be sent with every command.
+
+Stop command will ignore speed, and stop robot.
+
+Speed command when stopped will not start movement.
 
 ### Server -=> Client
 ```
@@ -41,6 +47,8 @@ Control messages are passed from client to server as JSON over a web sockets tra
     }
 ````
 
+Sent in response to each command sent from the client
+
 ```
     { event: 'obstacle',
        data: {
@@ -48,3 +56,7 @@ Control messages are passed from client to server as JSON over a web sockets tra
             }
     }
 ````
+
+Sent when an obstacle is detected on one of the configured sensors.  Robot will take "evasive" action when an obstacle is detected.  Robot will reverse at 150% of set speed for a short period that is proportional to speed and then stop.
+
+Client can act on obstacle message to take further action.
