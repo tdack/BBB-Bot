@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+  <link href="slider/slider.css" rel="stylesheet">
+  <link href="robot.css" rel="stylesheet">
+  <title>Bot Controller!</title>
+</head>  
+<body>
+  <div class="navbar navbar-default">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <div id="headline" class="navbar-brand">Control the BeagleBone Bot via WebSockets</div>
+      </div>
+      <div name="connection" class="navbar-form navbar-right" role="form">
+        <div class="form-group form-group-sm">
+            <label class="control-label">BeagleBone address: </label>
+            <div class="input-group">
+                <input id="BeagleURL" class="form-control" type="text" size="20" name="url" cols="20">
+                <span class="input-group-btn">
+                    <button id="connectButton" class="btn btn-success" data-style="zoom-in">
+                        <span class="glyphicon glyphicon-play"></span>
+                    </button>
+                </span>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-2"></div>    
+      <div class="col-md-6">
+        <div class="form-horizontal" role="form" name="controls">
+          <div class="form-group">
+            <div class="col-xs-2 col-md-2"></div>
+            <button class="col-xs-2 col-md-2 btn btn-success" name="Forward" id="fwd"><span class="glyphicon glyphicon-arrow-up"></span></button>
+          </div>
+          <div class="form-group">
+            <button class="col-xs-2 col-md-2 btn btn-success" name="Left" id="left"><span class="glyphicon glyphicon-arrow-left"></span></button>
+            <button class="col-xs-2 col-md-2 btn btn-danger" name="Stop"id="stop"><span class="glyphicon glyphicon-stop"></button>
+            <button class="col-xs-2 col-md-2 btn btn-success" name="Right" id="right"><span class="glyphicon glyphicon-arrow-right"></span></button>
+          </div>
+          <div class="form-group">
+            <div class="col-xs-2 col-md-2">&nbsp;</div>
+            <button class="col-xs-2 col-md-2 btn btn-success" name="Backward" id="rev"><span class="glyphicon glyphicon-arrow-down"></span></button>
+          </div>
+          <div class="form-group">
+              <label class="col-xs-2 control-label">Speed:</label>
+              <div class="col-xs-3 input-group">
+                <input type="text" class="span2" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="10" data-slider-selection="none" data-slider-tooltip="show" id="speed_value" value="10"></input>
+                <span class="input-group-btn" style="padding-left: 10px;">
+                  <button class="btn btn-default" name="Set" id="speed">
+                    <span class="glyphicon glyphicon-ok"></span>
+                  </button>
+                </span>
+              </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+        <div class="container">
+          <label>Server response:</label><br />
+          <div id="ticker" class="well">Enter address of BeagleBot above and click <span class="glyphicon glyphicon-play"></span><br />
+            Server responses will be displayed here.
+          </div>
+        </div>
+    </div>
+  </div>
+  </div>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+  <script src="slider/bootstrap-slider.js"></script>
+  <script src="ws_events_dispatcher.js"></script>
+  <script src="robot1.js"></script>
+</body>
+</html>

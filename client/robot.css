@@ -1,0 +1,36 @@
+.flash{
+
+  -moz-animation: flash 3s ease-out;
+  -moz-animation-iteration-count: 1;
+
+  -webkit-animation: flash 3s ease-out;
+  -webkit-animation-iteration-count: 1;
+
+  -ms-animation: flash 3s ease-out;
+  -ms-animation-iteration-count: 1;
+
+}
+
+@-webkit-keyframes flash {
+    0% { background-color:none;}
+    50% { background-color:#FF0000;}        
+    100% {background-color:none;}
+}
+
+@-moz-keyframes flash {
+    0% { background-color:none;}
+    50% { background-color:#FF0000;}        
+    100% {background-color:none;}
+}
+
+@-ms-keyframes flash {
+    0% { background-color:none;}
+    50% { background-color:#FF0000;}        
+    100% {background-color:none;}
+}
+
+#ticker {
+    height: 150px;
+    width: 50%;
+    overflow-y: auto;
+}
