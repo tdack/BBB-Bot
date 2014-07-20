@@ -42,7 +42,7 @@ Speed command when stopped will not start movement.
 ```
     { event: 'ack',
         cmd: {
-                cmd: 'command and speed carried out'
+                cmd: 'command and speed executed by server'
             }
     }
 ````
@@ -52,7 +52,8 @@ Sent in response to each command sent from the client
 ```
     { event: 'obstacle',
        data: {
-                sensor: 'sensor designation that obstacle was detected on'
+                sensor: 'sensor designation that obstacle was detected on',
+                name: 'descriptive name of sensor (eg: left, right)'
             }
     }
 ````
