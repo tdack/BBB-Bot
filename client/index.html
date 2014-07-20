@@ -50,8 +50,8 @@
           <div class="form-group">
               <label class="col-xs-2 control-label">Speed:</label>
               <div class="col-xs-3 input-group">
-                <input type="text" class="span2" data-slider-min="0" data-slider-max="100" data-slider-step="1" data-slider-value="10" data-slider-selection="none" data-slider-tooltip="show" id="speed_value" value="10"></input>
-                <span class="input-group-btn" style="padding-left: 10px;">
+                <input type="number" class="form-control col-xs-2" id="speed_value" value="10"></input>
+                <span class="input-group-btn">
                   <button class="btn btn-default" name="Set" id="speed">
                     <span class="glyphicon glyphicon-ok"></span>
                   </button>
@@ -71,9 +71,8 @@
     </div>
   </div>
   </div>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
   <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
-  <script src="slider/bootstrap-slider.js"></script>
   <script src="ws_events_dispatcher.js"></script>
   <script src="robot.js"></script>
 </body>

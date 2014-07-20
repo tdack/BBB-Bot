@@ -10,14 +10,17 @@ import threading
 from time import sleep
 import json
 
-logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
+# logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
 
 class RobotControl(WebSocket):
     saber = None
     UART = "UART1"
     TTY  ="ttyO1"
     STOP_GPIO = "P8_12"
-    PROXIMITY_GPIO = ["P9_11", "P9_12"]
+    PROXIMITY_GPIO = {"P9_11": {"name": "right"},
+                      "P9_12": {"name": "left"}
+                     }
+                       
     LEDS_GPIO = { "RED_pin": "P8_10",
                   "GREEN_pin": "P8_11" }
     SPEAKER_PIN = "P8_13"
@@ -41,7 +44,7 @@ class RobotControl(WebSocket):
         for PIN in self.PROXIMITY_GPIO:
             GPIO.setup(PIN, GPIO.IN)
         # try to add event detection for proximity GPIO pins
-        for PIN in self.PROXIMITY_GPIO:
+        for PIN, val in self.PROXIMITY_GPIO.items():
             # wait until the GPIO is configured as an input
             while GPIO.gpio_function(PIN) != GPIO.IN:
                 GPIO.setup(PIN, GPIO.IN)
@@ -69,7 +72,8 @@ class RobotControl(WebSocket):
             return # already handling a problem or not moving
         threading.Thread(target=self.__speaker).start()
         self.OBSTACLE = True
-        self.sendJSON("obstacle", {"sensor": "%s" % (channel)})
+        self.sendJSON("obstacle", {"sensor": "%s" % (channel), 
+                                   "name": "%s" % (self.PROXIMITY_GPIO[channel]["name"])})
         self.saber.driveMotor("both", "rev", int(float(self.SPEED)*1.5))
         delay = 1 - (float(self.SPEED)/200)
         sleep(delay)

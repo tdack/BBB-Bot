@@ -5,7 +5,7 @@
         doConnect();
       });
       $("#fwd, #left, #right, #rev, #stop, #speed_value, #speed").on('click', function(){
-        socket.send( 'drive', {cmd: this.id, speed: $("#speed_value").slider('getValue').val() } );
+        socket.send( 'drive', {cmd: this.id, speed: $("#speed_value").val() } );
       });
     }
     
@@ -52,8 +52,17 @@
     function onObstacle(data) {
       $("body").addClass("flash");
       setTimeout( function(){ $("body").removeClass("flash"); }, 3000);
-      writeToScreen('Obstacle detected on ' + data.sensor +'\n');
+      writeToScreen('Obstacle detected on the ' + data.name + '\n');
       beep();
+      switch (data.name) {
+        case "left":
+          dir = "right";
+          break;
+        case "right":
+          dir = "left";
+          break;
+      }
+      setTimeout(function() { writeToScreen("Taking evasive action\n"); socket.send( 'drive', {cmd: dir, speed: $("#speed_value").val() } ) }, 1500);
     }
 
     function onAck(data) {
@@ -88,5 +97,4 @@
   
     $(document).ready(function() {
       init();
-      $("#speed_value").slider();
     });
