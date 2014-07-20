@@ -22,7 +22,10 @@ Control messages are sent to the controller using "packetised serial mode".
 ## Client-Server Communication
 Control messages are passed from client to server as JSON over a web sockets transport.  Messages used are:
 
-### Client -=> Server
+### Client -=> Server JSON messages
++ `speed` is in percent and should be sent with every command.
++ Stop command will ignore speed, and stop robot.
++ Speed command when stopped will not start movement.
 ```
     { event: 'drive',
         cmd: {
@@ -32,13 +35,8 @@ Control messages are passed from client to server as JSON over a web sockets tra
     }
 ````
 
-`speed` is in percent and should be sent with every command.
-
-Stop command will ignore speed, and stop robot.
-
-Speed command when stopped will not start movement.
-
-### Server -=> Client
+### Server -=> Client JSON messages
+Sent in response to each command sent from the client
 ```
     { event: 'ack',
         cmd: {
@@ -47,8 +45,7 @@ Speed command when stopped will not start movement.
     }
 ````
 
-Sent in response to each command sent from the client
-
+Sent when an obstacle is detected on one of the configured sensors.  Robot will take "evasive" action when an obstacle is detected.  Robot will reverse at 150% of set speed for a short period that is proportional to speed and then stop.
 ```
     { event: 'obstacle',
        data: {
@@ -57,7 +54,5 @@ Sent in response to each command sent from the client
             }
     }
 ````
-
-Sent when an obstacle is detected on one of the configured sensors.  Robot will take "evasive" action when an obstacle is detected.  Robot will reverse at 150% of set speed for a short period that is proportional to speed and then stop.
 
 Client can act on obstacle message to take further action.
