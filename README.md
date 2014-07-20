@@ -3,6 +3,8 @@ beaglebone-robot
 
 A simple browser client that is able to send commands over web sockets to a BeagleBone Black running the server code.
 
+![Client](./client.png "Client UI")
+
 ## Client
 Bootstrap/JQuery based web page that will connect to the server and send simple commands over web sockets to control the robot.
 
@@ -26,7 +28,7 @@ Control messages are passed from client to server as JSON over a web sockets tra
 + `speed` is in percent and should be sent with every command.
 + Stop command will ignore speed, and stop robot.
 + Speed command when stopped will not start movement.
-```
+```JavaScript
     { event: 'drive',
         cmd: {
                 direction: 'fwd|rev|left|right|stop|speed',
@@ -37,7 +39,7 @@ Control messages are passed from client to server as JSON over a web sockets tra
 
 ### Server -=> Client JSON messages
 Sent in response to each command sent from the client
-```
+```Javascript
     { event: 'ack',
         cmd: {
                 cmd: 'command and speed executed by server'
@@ -46,7 +48,7 @@ Sent in response to each command sent from the client
 ````
 
 Sent when an obstacle is detected on one of the configured sensors.  Robot will take "evasive" action when an obstacle is detected.  Robot will reverse at 150% of set speed for a short period that is proportional to speed and then stop.
-```
+```Javascript
     { event: 'obstacle',
        data: {
                 sensor: 'sensor designation that obstacle was detected on',
