@@ -9,7 +9,8 @@ Bootstrap/JQuery based web page that will connect to the server and send simple 
 ## Server
 Control code written in Python.
 
-Requires
+Requires:
+
 1. Adafruit_BBIO Python library (installed by default on newer BeagleBone Black images)
 2. Python json library (also installed by default)
 
