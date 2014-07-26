@@ -43,6 +43,10 @@ var FancyWebSocket = function(url){
 
   var callbacks = {};
 
+  this.readyState = function() {
+    return conn.readyState;  
+  };
+  
   this.bind = function(event_name, callback){
     callbacks[event_name] = callbacks[event_name] || [];
     callbacks[event_name].push(callback);
