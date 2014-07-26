@@ -16,18 +16,27 @@ class RobotControl(WebSocket):
     saber = None
     UART = "UART1"
     TTY  ="ttyO1"
-    STOP_GPIO = "P8_12"
+    STOP_GPIO = "P9_13"
+    STOP_BUTTON = "P9_15"
+    
     PROXIMITY_GPIO = {"P9_11": {"name": "right"},
                       "P9_12": {"name": "left"}
                      }
                        
     LEDS_GPIO = { "RED_pin": "P8_10",
                   "GREEN_pin": "P8_11" }
-    SPEAKER_PIN = "P8_13"
+    SPEAKER_PWM = "P8_13"
+    SERVO_PWM = "P8_34"
+    
     SPEED = 10
     CMD = None
     OBSTACLE = False
+    SPEAKER = False
+    SCAN = False
+    angle = 0.0
     
+    # cmd values that can be sent for a JSON "drive" event
+    # maps command to corresponding function to control motors
     commands = {"fwd":   "do_forward",
                 "rev":   "do_reverse",
                 "left":  "turn_left",
@@ -35,14 +44,14 @@ class RobotControl(WebSocket):
                 "stop":  "do_stop",
                 "speed": "set_speed"
                }
-    CB_INIT = False
-    
+
     def __init__(self, server, sock, address):
         super(RobotControl, self).__init__(server, sock, address)
 
         # setup GPIO pins for proximity sensors
         for PIN in self.PROXIMITY_GPIO:
             GPIO.setup(PIN, GPIO.IN)
+
         # try to add event detection for proximity GPIO pins
         for PIN, val in self.PROXIMITY_GPIO.items():
             # wait until the GPIO is configured as an input
@@ -54,17 +63,35 @@ class RobotControl(WebSocket):
             GPIO.setup(LED, GPIO.OUT)
             GPIO.output(LED, GPIO.LOW)
 
+        GPIO.setup(self.STOP_GPIO, GPIO.OUT)
+        GPIO.output(self.STOP_GPIO, GPIO.HIGH)
+
+        GPIO.setup(self.STOP_BUTTON, GPIO.IN)
+        while GPIO.gpio_function(self.STOP_BUTTON) != GPIO.IN:
+            GPIO.setup(self.STOP_BUTTON, GPIO.IN)
+        GPIO.add_event_detect(self.STOP_BUTTON, GPIO.RISING, self.__stopButton, 10)
+    
+        PWM.start(self.SPEAKER_PWM, 50, 3000)
+        PWM.stop(self.SPEAKER_PWM)
+        self.SCAN = True
+        threading.Thread(target=self.__servoScan).start()
+
         GPIO.output(self.LEDS_GPIO["RED_pin"], GPIO.HIGH)
         
         self.saber = Sabertooth(self.UART, self.TTY)
         self.saber.setRamp(15)
 
     def __speaker(self):
+        if self.SPEAKER:
+            return
+        self.SPEAKER = True
+        PWM.start(self.SPEAKER_PWM, 50, 3000)
         for dir in [-1,2]:
             for x in range(3,20):
-                PWM.start(self.SPEAKER_PIN, 50, 3000 + (dir * x * 100))
+                PWM.set_frequency(self.SPEAKER_PWM, 3000 + (dir * x * 100))
                 sleep(0.05)
-            PWM.start(self.SPEAKER_PIN, 0, 1)
+        PWM.stop(self.SPEAKER_PWM)
+        self.SPEAKER = False
         return
             
     def __proximityDetect(self, channel):
@@ -79,6 +106,33 @@ class RobotControl(WebSocket):
         sleep(delay)
         self.do_stop(self.SPEED)
         self.OBSTACLE = False
+        return
+
+    def __stopButton(self, channel):
+        self.SCAN = False
+        GPIO.output(self.STOP_GPIO, GPIO.HIGH)
+        self.do_stop(self.SPEED)
+        return
+
+    def __servoScan(self):
+        PWM.start(self.SERVO_PWM, 3, 50)
+        while self.SCAN:
+            for a in xrange(0,180,1):
+                self.angle = a
+                duty = 3.2 + (a/180.0)*10.5
+                if self.SCAN:
+                    PWM.set_duty_cycle(self.SERVO_PWM, duty)
+                else:
+                    break
+                sleep(0.01)
+            for a in xrange(181,1,-1):
+                self.angle = a
+                duty = 3.2 + (a/180.0)*10.5
+                if self.SCAN:
+                    PWM.set_duty_cycle(self.SERVO_PWM, duty)
+                else:
+                    break
+                sleep(0.01)
         return
 
     def do_forward(self, set_speed):
@@ -126,7 +180,10 @@ class RobotControl(WebSocket):
             getattr(self, self.commands[self.CMD])(int(self.SPEED))
     
     def sendJSON(self, event, data):
-        self.sendMessage(json.dumps({"event": event, "data": data}))
+        try:
+            self.sendMessage(json.dumps({"event": event, "data": data}))
+        except Exception as n:
+            print "sendJSON: ", n
     
     def handleMessage(self):
         if self.data is None:
@@ -145,22 +202,22 @@ class RobotControl(WebSocket):
             if msg['data']['cmd']  in ["fwd", "rev", "stop"]:
                 self.CMD = msg['data']['cmd'] 
                 self.SPEED = int(msg['data']['speed'])
-
-        try:
             self.sendJSON("ack", {"cmd": "%s %d" % (self.commands[msg['data']['cmd']], self.SPEED)})
-        except Exception as n:
-            print n
-			
+        elif (msg["event"] == 'fetch') and (msg['data']['cmd'] == 'angle'):
+            self.sendJSON("angle", {"angle": "%2.f" % (self.angle)});
+
     def handleConnected(self):
         print self.address, 'connected'
 
     def handleClose(self):
         for PIN in self.PROXIMITY_GPIO:
             GPIO.remove_event_detect(PIN)
-
+        GPIO.remove_event_detect(self.STOP_BUTTON)
+        PWM.stop(self.SPEAKER_PWM)
+        self.SCAN = False
+        PWM.stop(self.SERVO_PWM)
         self.saber.stop()
         print self.address, 'closed'
-
 
 if __name__ == "__main__":
 
