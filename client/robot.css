@@ -34,3 +34,9 @@
     width: 50%;
     overflow-y: auto;
 }
+
+#angle {
+    width: 200px;
+    height: 200px;
+    border: 1px solid gray;
+}

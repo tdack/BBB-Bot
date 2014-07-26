@@ -1,3 +1,16 @@
+    function draw_arrow(context, startX, startY, size) { 
+      var arrowX = startX + 0.75*size; 
+      var arrowTopY = startY - 0.707*(0.25*size);  
+      var arrowBottomY = startY + 0.707*(0.25*size); 
+      context.beginPath();
+      context.moveTo(startX, startY); 
+      context.lineTo(startX+size, startX); 
+      context.lineTo(arrowX, arrowTopY); 
+      context.moveTo(startX+size, startX); 
+      context.lineTo(arrowX, arrowBottomY); 
+      context.stroke(); 
+    }
+
     function init() {
       $("#BeagleURL").val("ws://beaglebone.local:8000/");
       $("#fwd, #left, #right, #stop, #rev, #speed_value, #speed").attr('disabled', 'disabled');
@@ -15,18 +28,24 @@
       socket.bind('close', function(evt) { onClose(evt) });
       socket.bind('obstacle', function(data) { onObstacle(data) });
       socket.bind('ack', function(data) { onAck(data) });
+      socket.bind('angle', function(data) { onAngle(data) });
       socket.bind('error', function(data) { onError(data) }) ;
       clearText();
       writeToScreen("connecting\n");
       $("#connectButton").html('<span class="glyphicon glyphicon-flash">');
       $("#connectButton").removeClass("btn-success").addClass("btn-info");
       setTimeout(function(){
-            if (socket.readyState == 0 || socket.readyState == 3) {
+            if (socket.readyState() == 0 || socket.readyState() == 3) {
                 writeToScreen("connection failed\n");
                 $("#connectButton").removeClass("btn-info").addClass("btn-success");
                 $("#connectButton").html('<span class="glyphicon glyphicon-play">');
             }
        }, 5000);
+       setInterval(function(){
+          if (socket.readyState() == 1) {
+            socket.send('fetch', {cmd: "angle"});
+          }
+       }, 100);
     }
     
     function onOpen(evt) {
@@ -62,7 +81,9 @@
           dir = "left";
           break;
       }
-      setTimeout(function() { writeToScreen("Taking evasive action\n"); socket.send( 'drive', {cmd: dir, speed: $("#speed_value").val() } ) }, 1500);
+      setTimeout(function() {
+        writeToScreen("Taking evasive action\n");
+        socket.send( 'drive', {cmd: dir, speed: $("#speed_value").val() } ) }, 1500);
     }
 
     function onAck(data) {
@@ -84,6 +105,21 @@
     function writeToScreen(message) {
       $("#ticker").append(message.replace('\n', '<br />'));
       $("#ticker").scrollTop($("#ticker")[0].scrollHeight);
+    }
+    
+    function onAngle(data) {
+      var canvas = $("#angle")[0];
+      var context = canvas.getContext("2d");
+      var startX = 0;  
+      var startY = 0;  
+      var size   = 50; 
+      context.lineWidth = 2; 
+      context.strokeStyle="red";
+      context.setTransform(1, 0, 0, 1, 0, 0);                        
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.translate(canvas.width/2,canvas.height/2);
+      context.rotate((data.angle-180)*Math.PI/180);
+      draw_arrow(context, startX, startY, size);
     }
     
     function doDisconnect() {
