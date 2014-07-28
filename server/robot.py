@@ -119,7 +119,7 @@ class RobotControl(WebSocket):
         while self.SCAN:
             for a in xrange(0,180,1):
                 self.angle = a
-                duty = 3.2 + (a/180.0)*10.5
+                duty = 3.7 + (a/180.0)*9.5
                 if self.SCAN:
                     PWM.set_duty_cycle(self.SERVO_PWM, duty)
                 else:
@@ -127,7 +127,7 @@ class RobotControl(WebSocket):
                 sleep(0.01)
             for a in xrange(181,1,-1):
                 self.angle = a
-                duty = 3.2 + (a/180.0)*10.5
+                duty = 3.7 + (a/180.0)*9.5
                 if self.SCAN:
                     PWM.set_duty_cycle(self.SERVO_PWM, duty)
                 else:
