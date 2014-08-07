@@ -1,3 +1,5 @@
+    var avoidingObstacle = false;
+
     function draw_arrow(context, startX, startY, size) { 
       var arrowX = startX + 0.75*size; 
       var arrowTopY = startY - 0.707*(0.25*size);  
@@ -29,6 +31,7 @@
       socket.bind('obstacle', function(data) { onObstacle(data) });
       socket.bind('ack', function(data) { onAck(data) });
       socket.bind('angle', function(data) { onAngle(data) });
+      socket.bind('heading', function(data) { onHeading(data) });
       socket.bind('error', function(data) { onError(data) }) ;
       clearText();
       writeToScreen("connecting\n");
@@ -46,6 +49,11 @@
             socket.send('fetch', {cmd: "angle"});
           }
        }, 100);
+       setInterval(function(){
+           if (socket.readyState() == 1) {
+             socket.send('fetch', {cmd: "heading"});
+           }
+       }, 500);
     }
     
     function onOpen(evt) {
@@ -69,21 +77,26 @@
     }
     
     function onObstacle(data) {
-      $("body").addClass("flash");
-      setTimeout( function(){ $("body").removeClass("flash"); }, 3000);
-      writeToScreen('Obstacle detected on the ' + data.name + '\n');
-      beep();
-      switch (data.name) {
-        case "left":
-          dir = "right";
-          break;
-        case "right":
-          dir = "left";
-          break;
+      if (!avoidingObstacle) {
+        avoidingObstacle = true;
+        $("body").addClass("flash");
+        setTimeout( function(){ $("body").removeClass("flash"); }, 3000);
+        writeToScreen('Obstacle detected on the ' + data.name + '\n');
+        beep();
+        switch (data.name) {
+          case "left":
+            dir = "right";
+            break;
+          case "right":
+            dir = "left";
+            break;
+        }
+        setTimeout(function() {
+          writeToScreen("Taking evasive action\n");
+          socket.send( 'drive', {cmd: dir, speed: $("#speed_value").val() } ) 
+          avoidingObstacle = false;
+        }, 1500);
       }
-      setTimeout(function() {
-        writeToScreen("Taking evasive action\n");
-        socket.send( 'drive', {cmd: dir, speed: $("#speed_value").val() } ) }, 1500);
     }
 
     function onAck(data) {
@@ -121,6 +134,10 @@
       context.rotate((data.angle-180)*Math.PI/180);
       draw_arrow(context, startX, startY, size);
     }
+    
+     function onHeading(data) {
+       $("#heading").html("Heading: " + data.angle + "°");
+     }
     
     function doDisconnect() {
       socket.close();

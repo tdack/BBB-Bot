@@ -6,11 +6,13 @@ from optparse import OptionParser
 from sabertooth import Sabertooth
 import Adafruit_BBIO.GPIO as GPIO
 import Adafruit_BBIO.PWM as PWM
+from Adafruit_HMC5883L import Adafruit_HMC5883L as MAG
 import threading
+from datetime import datetime
 from time import sleep
 import json
 
-# logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
 class RobotControl(WebSocket):
     saber = None
@@ -28,12 +30,20 @@ class RobotControl(WebSocket):
     SPEAKER_PWM = "P8_13"
     SERVO_PWM = "P8_34"
     
+    ECHO_RETURN = "P8_15"
+    ECHO_TRIGGER = "P9_14"
+    
     SPEED = 10
     CMD = None
     OBSTACLE = False
     SPEAKER = False
     SCAN = False
     angle = 0.0
+    distance = (0.0, 0.0)
+    COUNTING = False
+    startTime = datetime.now()
+    endTime = datetime.now()
+    delta = endTime-startTime
     
     # cmd values that can be sent for a JSON "drive" event
     # maps command to corresponding function to control motors
@@ -63,19 +73,37 @@ class RobotControl(WebSocket):
             GPIO.setup(LED, GPIO.OUT)
             GPIO.output(LED, GPIO.LOW)
 
+        # Connected to Sabertooth S2 as "emergency stop" button
         GPIO.setup(self.STOP_GPIO, GPIO.OUT)
         GPIO.output(self.STOP_GPIO, GPIO.HIGH)
-
+        # Triggers when button pressed
         GPIO.setup(self.STOP_BUTTON, GPIO.IN)
         while GPIO.gpio_function(self.STOP_BUTTON) != GPIO.IN:
             GPIO.setup(self.STOP_BUTTON, GPIO.IN)
         GPIO.add_event_detect(self.STOP_BUTTON, GPIO.RISING, self.__stopButton, 10)
-    
-        PWM.start(self.SPEAKER_PWM, 50, 3000)
-        PWM.stop(self.SPEAKER_PWM)
+
+        # HMC5883L Magnetometer
+        self.mag = MAG(declination=(11,35))
+
+        # HC-SR04 pin setup
+        # ECHO_TRIGGER initiates ultrasonic pulse
+        GPIO.setup(self.ECHO_TRIGGER, GPIO.OUT)
+        
+        # ECHO_RETURN - needs to be level shifted from 5.0V to 3.3V
+        # time of +ve pulse is the distance
+        GPIO.setup(self.ECHO_RETURN, GPIO.IN)
+        while GPIO.gpio_function(self.ECHO_RETURN) != GPIO.IN:
+            GPIO.setup(self.ECHO_RETURN, GPIO.IN)
+        GPIO.add_event_detect(self.ECHO_RETURN, GPIO.BOTH, self.__measureEcho, 1)
+        GPIO.output(self.ECHO_TRIGGER, GPIO.LOW)
+
+        # Start servo scanning movement thread
         self.SCAN = True
         threading.Thread(target=self.__servoScan).start()
-
+        # Start HC-SR04 timing/measurement thread
+        threading.Thread(target=self.__HCSR04).start()
+        
+        self.do_beep(0.25)
         GPIO.output(self.LEDS_GPIO["RED_pin"], GPIO.HIGH)
         
         self.saber = Sabertooth(self.UART, self.TTY)
@@ -134,6 +162,60 @@ class RobotControl(WebSocket):
                     break
                 sleep(0.01)
         return
+
+    def __measureEcho(self, channel):
+        # Get time when Echo line goes high (ie: RISING edge)
+        if GPIO.input(self.ECHO_RETURN) == GPIO.HIGH and not self.COUNTING:
+            self.startTime = datetime.now()
+            self.COUNTING = True
+        # Get time when Echo line goes low (ie: FALLING edge)
+        elif GPIO.input(self.ECHO_RETURN) == GPIO.LOW and self.COUNTING:
+            self.endTime = datetime.now()
+            # delta is the period of the echo (roughly)
+            self.delta = self.endTime - self.startTime
+            self.COUNTING = False
+        return
+
+    def __HCSR04(self):
+        measures = []
+        while self.SCAN:
+            # Set Trigger to HIGH
+            GPIO.output("P9_14", GPIO.HIGH)
+            # Wait a tiny amount (should be 10us). This is not deterministic
+            # when running stock Linux. To get better use a RTOS or the PRUSS
+            sleep(0.001)
+            # Set Trigger to LOW
+            # This will cause the HC-SR04 to output an ultrasonic pulse and start
+            # listening for the return
+            GPIO.output("P9_14", GPIO.LOW)
+            # Sleep for a bit so that we don't send out another pulse before the
+            # previous one has finished
+            sleep(0.05)
+            # 58.77 is the magic number for cm per microsecond
+            d = min(200.0, max(self.delta.microseconds/58.77,17.0))
+            # only include value if it is reasonable/valid
+            if d > 17 and d < 200:
+                measures.insert(0, d)
+                if len(measures) > 3:
+                    measures.pop()
+            # take an average of the last few measures as the distance
+            if len(measures) > 0:
+                self.distance = sum(measures)/len(measures)
+            else:
+                self.distance = 20.0
+            if self.distance < 20 and not self.OBSTACLE:
+                self.OBSTACLE = True
+                if self.angle < 90:
+                    self.sendJSON("obstacle", {"sensor": "P9_12", "name": "left"})
+                else:
+                    self.sendJSON("obstacle", {"sensor": "P9_11", "name": "right"})
+                self.OBSTACLE = False
+        return
+
+    def do_beep(self, duration):
+        PWM.start(self.SPEAKER_PWM, 50, 3000)
+        sleep(duration)
+        PWM.stop(self.SPEAKER_PWM)
 
     def do_forward(self, set_speed):
         if set_speed != None:
@@ -203,19 +285,26 @@ class RobotControl(WebSocket):
                 self.CMD = msg['data']['cmd'] 
                 self.SPEED = int(msg['data']['speed'])
             self.sendJSON("ack", {"cmd": "%s %d" % (self.commands[msg['data']['cmd']], self.SPEED)})
-        elif (msg["event"] == 'fetch') and (msg['data']['cmd'] == 'angle'):
-            self.sendJSON("angle", {"angle": "%2.f" % (self.angle)});
+        elif (msg["event"] == 'fetch'):
+            if msg['data']['cmd'] == 'angle':
+                self.sendJSON("angle", {"angle": "%2.2f" % (self.angle)})
+            elif msg['data']['cmd'] == 'heading':
+                self.sendJSON("heading", {"angle": "%2.2f" % (self.mag.getHeading()[0])})
+                
 
     def handleConnected(self):
         print self.address, 'connected'
 
     def handleClose(self):
+        self.do_beep(0.25)
         for PIN in self.PROXIMITY_GPIO:
             GPIO.remove_event_detect(PIN)
         GPIO.remove_event_detect(self.STOP_BUTTON)
-        PWM.stop(self.SPEAKER_PWM)
+        GPIO.remove_event_detect(self.ECHO_RETURN)
         self.SCAN = False
+        sleep(1)
         PWM.stop(self.SERVO_PWM)
+        PWM.stop(self.SPEAKER_PWM)
         self.saber.stop()
         print self.address, 'closed'
 
