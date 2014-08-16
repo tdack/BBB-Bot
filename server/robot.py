@@ -14,7 +14,7 @@ from datetime import datetime
 from time import sleep
 import json
 
-logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
 class RobotControl(SimpleWebSocketServer.WebSocket):
     saber = None
