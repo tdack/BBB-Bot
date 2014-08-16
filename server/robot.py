@@ -1,20 +1,22 @@
 #!/bin/python
 
 import signal, sys, ssl, logging
-from SimpleWebSocketServer import WebSocket, SimpleWebSocketServer, SimpleSSLWebSocketServer
+from SimpleWebSocketServer import *
 from optparse import OptionParser
-from sabertooth import Sabertooth
+import Sabertooth.Sabertooth as Sabertooth
 import Adafruit_BBIO.GPIO as GPIO
 import Adafruit_BBIO.PWM as PWM
-from Adafruit_HMC5883L import Adafruit_HMC5883L as MAG
+import Sensors.Adafruit_HMC5883L as MAG
+import Sensors.Adafruit_SharpIR as IR
+import Sensors.Adafruit_ADXL345 as COMPASS
 import threading
 from datetime import datetime
 from time import sleep
 import json
 
-logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
 
-class RobotControl(WebSocket):
+class RobotControl(SimpleWebSocketServer.WebSocket):
     saber = None
     UART = "UART1"
     TTY  ="ttyO1"
@@ -83,7 +85,7 @@ class RobotControl(WebSocket):
         GPIO.add_event_detect(self.STOP_BUTTON, GPIO.RISING, self.__stopButton, 10)
 
         # HMC5883L Magnetometer
-        self.mag = MAG(declination=(11,35))
+        self.mag = MAG.Adafruit_HMC5883L(declination=(11,35))
 
         # HC-SR04 pin setup
         # ECHO_TRIGGER initiates ultrasonic pulse
@@ -106,7 +108,7 @@ class RobotControl(WebSocket):
         self.do_beep(0.25)
         GPIO.output(self.LEDS_GPIO["RED_pin"], GPIO.HIGH)
         
-        self.saber = Sabertooth(self.UART, self.TTY)
+        self.saber = Sabertooth.Sabertooth(self.UART, self.TTY)
         self.saber.setRamp(15)
 
     def __speaker(self):
@@ -289,7 +291,7 @@ class RobotControl(WebSocket):
             if msg['data']['cmd'] == 'angle':
                 self.sendJSON("angle", {"angle": "%2.2f" % (self.angle)})
             elif msg['data']['cmd'] == 'heading':
-                self.sendJSON("heading", {"angle": "%2.2f" % (self.mag.getHeading()[0])})
+                self.sendJSON("heading", {"angle": "%2.2f" % (self.mag.getHeading())})
                 
 
     def handleConnected(self):
@@ -328,9 +330,9 @@ if __name__ == "__main__":
     cls = RobotControl
     
     if options.ssl == 1:
-        server = SimpleSSLWebSocketServer(options.host, options.port, cls, options.cert, options.cert, version=options.ver)
+        server = SimpleWebSocketServer.SimpleSSLWebSocketServer(options.host, options.port, cls, options.cert, options.cert, version=options.ver)
     else:	
-        server = SimpleWebSocketServer(options.host, options.port, cls)
+        server = SimpleWebSocketServer.SimpleWebSocketServer(options.host, options.port, cls)
 
     signal.signal(signal.SIGINT, close_sig_handler)
 
