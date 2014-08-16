@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import Adafruit_BBIO.ADC as ADC
 from time import sleep
+import sys
 
 #
 # For the BeagleBone Black the input voltage has to be 0-1.8V
@@ -72,10 +73,11 @@ class SharpIR(object):
             print("Measure @ %d cm" % (d))
             sleep(5)
             for x in range(5):
-                print("%d  " % (5-x))
+                sys.stdout.write("%d  " % (5-x))
+                sys.stdout.flush()
                 sleep(1)
                 
-            print("Reading @ %d cm" % (d))
+            print("\nReading @ %d cm" % (d))
             sleep(2)
             value = 0.0
             total = 0.0
@@ -115,7 +117,7 @@ class SharpIR(object):
         return distance
         
 if __name__ == '__main__':
-    IR = SharpIR("P9_36", scale=1560.0/560.0)
+    IR = SharpIR("P9_36", scale=1560.0/560.0, coeff=26.686363, power=-1.162602)
     IR.calibrate(10)
     while 1:
         print IR.distance()
