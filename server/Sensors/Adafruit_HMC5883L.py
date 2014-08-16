@@ -153,7 +153,7 @@ class Adafruit_HMC5883L(object):
         if DMS:
             return (degrees, minutes)
         else:
-            return (headingDeg, 0.0)
+            return headingDeg
 	
     def getHeadingString(self):
         (degrees, minutes) = self.getHeading(True)
