@@ -1,0 +1,3 @@
+[submodule "Adafruit"]
+	path = Adafruit
+	url = git@github.com:tdack/Adafruit-Raspberry-Pi-Python-Code.git
