@@ -3,12 +3,12 @@
 import signal, sys, ssl, logging
 from SimpleWebSocketServer import *
 from optparse import OptionParser
-import Sabertooth.Sabertooth as Sabertooth
+from Sabertooth.Sabertooth import Sabertooth as Sabertooth
 import Adafruit_BBIO.GPIO as GPIO
 import Adafruit_BBIO.PWM as PWM
-import Sensors.Adafruit_HMC5883L as MAG
-import Sensors.Adafruit_SharpIR as IR
-import Sensors.Adafruit_ADXL345 as COMPASS
+from Sensors.Adafruit_HMC5883L import Adafruit_HMC5883L as MAG
+from Sensors.Adafruit_SharpIR  import Adafruit_SharpIR as IR
+from Sensors.Adafruit_ADXL345  import Adafruit_ADXL345 as GYRO
 import threading
 from datetime import datetime
 from time import sleep
@@ -85,7 +85,7 @@ class RobotControl(SimpleWebSocketServer.WebSocket):
         GPIO.add_event_detect(self.STOP_BUTTON, GPIO.RISING, self.__stopButton, 10)
 
         # HMC5883L Magnetometer
-        self.mag = MAG.Adafruit_HMC5883L(declination=(11,35))
+        self.mag = MAG(declination=(11,35))
 
         # HC-SR04 pin setup
         # ECHO_TRIGGER initiates ultrasonic pulse
@@ -108,7 +108,7 @@ class RobotControl(SimpleWebSocketServer.WebSocket):
         self.do_beep(0.25)
         GPIO.output(self.LEDS_GPIO["RED_pin"], GPIO.HIGH)
         
-        self.saber = Sabertooth.Sabertooth(self.UART, self.TTY)
+        self.saber = Sabertooth(self.UART, self.TTY)
         self.saber.setRamp(15)
 
     def __speaker(self):
