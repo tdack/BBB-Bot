@@ -16,7 +16,8 @@ LINES = 2
 
 lcd = LCD()
 lcd.begin(16,2)
-lcd.blink()
+lcd.cursor()
+# lcd.blink()
 
 encoder0 = eQEP("/sys/devices/ocp.3/48300000.epwmss/48300180.eqep", eQEP.MODE_ABSOLUTE)
 
@@ -34,7 +35,7 @@ def displayMenu(top, lines):
 
 
 displayMenu(1, LINES)
-lcd.setCursor(0, CURSOR_INDEX - 1)
+lcd.setCursor(15, CURSOR_INDEX - 1)
 
 # Poll the position indefinitely.  Program will provide a position at 10 Hz
 while True:
@@ -56,5 +57,5 @@ while True:
                 
     if delta != 0:
         displayMenu(MENU_TOP, LINES)
-        lcd.setCursor(0, CURSOR_INDEX - 1)
+        lcd.setCursor(15, CURSOR_INDEX - 1)
         print "Cursor: %d\tMenu: %d" % (CURSOR_INDEX, MENU_TOP)
